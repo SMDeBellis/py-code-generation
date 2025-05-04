@@ -19,17 +19,31 @@ class PyExecutorAgent:
     def execute_python_with_docker(self, state: GraphState) -> Dict[str, Any]:
         """Execute Python code in a Docker Container"""
         self.log.info("\n\n\n+++++++++++ executing execute_python_with_docker")
-        self.py_executor.build_application_structure(state)
-        exec_result = self.py_executor.run_script(state)
+        try:
+            self.py_executor.build_application_structure(state)
+            exec_result = self.py_executor.run_script(state)
+        except Exception as e:
+            exec_result = {"error": str(e)}
+        
         print(f"=========s exec_result: {exec_result}")
         return exec_result
 
     def generate(self, state: GraphState) -> GraphState:
         self.log.info("\n\n\n+++++++++++ executing generate")
-        generation = self.llm.with_structured_output(CodeState).invoke(state['messages'])
+        try:
+            generation = self.llm.with_structured_output(CodeState).invoke(state['messages'])
+        except:
+            generation = None
         return {**state,
                 "generation": generation,
                 "iterations": state["iterations"] + 1}
+
+    def validate_generation(self, state: GraphState) -> str:
+        self.log.info(f"\n\n+++++++++++++++ executing validate_generation. type(state): {type(state)}")
+        generation: CodeState = state['generation']
+        if generation and generation.code_module_name and generation.code_under_test and generation.code_under_test_name and generation.filename_extension and generation.test_suite:
+            return "pass"
+        return "fail"
 
     # Need to pass the resulting code error output to the llm to evaluate and create a fix if necessary
     def code_check(self, state: GraphState) -> GraphState:

@@ -29,14 +29,17 @@ def run_code_builder(spec_file: str, language: str):
 
         graph = StateGraph(GraphState)
         graph.add_node("generate", agent.generate)
+        graph.add_node("validate_genereration", agent.validate_generation)
         graph.add_node("code_check", agent.code_check)
         graph.add_node("fix_code", agent.fix_code)
         graph.add_node("fail", agent.fail)
         graph.add_edge(START, "generate")
-        graph.add_edge("generate", "code_check")
-        graph.add_edge("fix_code", "code_check")
+        graph.add_conditional_edges("generate", agent.validate_generation,
+                                    {"fail": "generate", "pass": "code_check"})
         graph.add_conditional_edges("code_check", agent.should_retry,
                                     {"fix": "fix_code", "gtfo": "fail", "end": END})
+        graph.add_conditional_edges("fix_code", agent.validate_generation,
+                                    {"fail": "fix_code", "pass": "code_check"})
 
         app = graph.compile()
 
