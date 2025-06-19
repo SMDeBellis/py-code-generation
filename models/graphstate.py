@@ -1,4 +1,4 @@
-from typing import TypedDict, List
+from typing import TypedDict, List, Optional
 from models.codestate import CodeState
 
 class GraphState(TypedDict):
@@ -7,3 +7,5 @@ class GraphState(TypedDict):
     generation: CodeState
     iterations: int
     success: bool
+    code_review: Optional[str]
+    spec: str
