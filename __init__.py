@@ -11,9 +11,22 @@ from dotenv import load_dotenv
 import sys
 import time
 from langgraph.graph import StateGraph, START, END
+from datetime import datetime
 
+os.makedirs('log', exist_ok=True)
+timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+log_filename = f'log/py-code-generator-{timestamp}.log'
 
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_filename),
+        logging.StreamHandler()  # Optional: also log to console
+    ]
+)
+# logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 log = logging.getLogger("Service")
 load_dotenv()
 
@@ -47,6 +60,8 @@ def run_code_builder(spec_file: str, language: str):
                                     {"pass": END, "fail": "fix_with_review"})
         graph.add_conditional_edges("fix_with_review", agent.validate_generation,
                                     {"fail": "fix_with_review", "pass": "code_check"})
+        graph.add_conditional_edges("fail", agent.fail,
+                                    {END: END})
 
         app = graph.compile()
 
