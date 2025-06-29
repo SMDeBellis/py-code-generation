@@ -106,7 +106,7 @@ class PyDockerExecutor:
         if self.temp_dir:
             generation = state['generation']
             
-            tests_dest = os.path.join(self.temp_dir, "test_" + generation.code_under_test_name + ".py")
+            tests_dest = os.path.join(self.temp_dir, "test_" + generation.code_under_test_name.replace(' ', '') + ".py")
             with open(tests_dest, 'w+') as test_f:
                 test_f.write(generation.test_suite)
             self.log.info(f"Wrote to file: {tests_dest}, tests: {generation.test_suite}")

@@ -48,7 +48,7 @@ class PyExecutorAgent:
         tries = 0
         while not generation and tries < self.try_tolerance:
             try:
-                self.log.debug("Calling llm to generate tests and code.")
+                self.log.debug(f"Calling llm to generate tests and code with messages: {state["messages"]}.")
                 generation = self.llm.with_structured_output(CodeState).invoke(state['messages'])
                 self.log.debug("generation of tests and code complete.")
             except Exception as e:
@@ -62,6 +62,7 @@ class PyExecutorAgent:
             exit(1)
         
         return {**state,
+                "messages": state["messages"][0:1],
                 "error": "",
                 "generation": generation,
                 "iterations": state["iterations"] + 1}
@@ -98,6 +99,7 @@ class PyExecutorAgent:
         while not result and tries < self.try_tolerance:
             try:
                 #TODO: Should we verify that result.code_review exists after?
+                self.log.info(f"Reviewing code and tests with messages: {state["messages"]}")
                 result = self.llm.with_structured_output(ReviewState).invoke(state['messages'])
             except Exception as e:
                 self.log.error(f"Error getting code review: {e}. Retrying...")
@@ -110,6 +112,7 @@ class PyExecutorAgent:
             exit(1)
 
         return {**state,
+                "messages": state["messages"][0:1],
                 "code_review": result.code_review}
 
     def fix_with_review(self, state: GraphState) -> GraphState:
@@ -124,6 +127,7 @@ class PyExecutorAgent:
         retries = 0
         while not result and retries < self.try_tolerance:
             try:
+                self.log.info(f"fixing with review with messages: {state["messages"]}")
                 result = self.llm.with_structured_output(CodeState).invoke(state['messages'])
             except Exception as e:
                 self.log.error(f"Exception caught while generating code in fix with review. ")
@@ -136,6 +140,7 @@ class PyExecutorAgent:
             exit(1)
 
         return {**state,
+                "messages": state["messages"][0:1],
                 "error": "",
                 "code_review": None,
                 "messages": state['messages'],
@@ -158,6 +163,7 @@ class PyExecutorAgent:
         tries = 0
         while not generation and tries < self.try_tolerance:
             try:
+                self.log.info(f"Fixing with messages: {state["messages"]}")
                 generation = self.llm.with_structured_output(CodeState).invoke(state['messages'])
             except ValidationError as e:
                 tries += 1
@@ -170,7 +176,7 @@ class PyExecutorAgent:
 
         return {**state,
                 "error": "",
-                "messages": state['messages'],
+                "messages": state['messages'][0:1],
                 "generation": generation,
                 "iterations": state["iterations"] + 1}
     
