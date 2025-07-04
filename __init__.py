@@ -17,6 +17,10 @@ os.makedirs('log', exist_ok=True)
 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 log_filename = f'log/py-code-generator-{timestamp}.log'
 
+logging.getLogger('httpcore.connection').setLevel(logging.WARNING)
+logging.getLogger('httpcore.http11').setLevel(logging.WARNING)
+logging.getLogger('urllib3.connectionpool').setLevel(logging.WARNING)
+
 # Configure logging
 logging.basicConfig(
     level=logging.DEBUG,
@@ -50,6 +54,8 @@ def run_code_builder(spec_file: str, language: str):
         graph.add_node("fix_with_review", agent.fix_with_review)
         graph.add_node("fail", agent.fail)
         graph.add_edge(START, "generate")
+        graph.add_edge("fail", END)
+
         graph.add_conditional_edges("generate", agent.validate_generation,
                                     {"fail": "generate", "pass": "code_check"})
         graph.add_conditional_edges("code_check", agent.should_retry,
@@ -60,8 +66,6 @@ def run_code_builder(spec_file: str, language: str):
                                     {"pass": END, "fail": "fix_with_review"})
         graph.add_conditional_edges("fix_with_review", agent.validate_generation,
                                     {"fail": "fix_with_review", "pass": "code_check"})
-        graph.add_conditional_edges("fail", agent.fail,
-                                    {END: END})
 
         app = graph.compile()
 
@@ -76,7 +80,8 @@ def run_code_builder(spec_file: str, language: str):
                     "generation": None,
                     "success": False,
                     "code_review": None,
-                    "spec": spec})
+                    "spec": spec},
+                    config={"recursion_limit": 100})
         
         log.info(f"Code creation has completed. results: {results}")
         if results and results['generation']:

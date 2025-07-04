@@ -1,5 +1,6 @@
 from typing import TypedDict, List, Optional
 from models.codestate import CodeState
+from models.reviewstate import ReviewState
 
 class GraphState(TypedDict):
     error: str
@@ -7,5 +8,5 @@ class GraphState(TypedDict):
     generation: CodeState
     iterations: int
     success: bool
-    code_review: Optional[str]
+    code_review: Optional[ReviewState] = None
     spec: str

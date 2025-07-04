@@ -9,14 +9,17 @@ from prompts import get_fix_prompt, get_review_prompt, get_fix_with_review_promp
 import logging
 from pydantic_core import ValidationError
 from langgraph.graph import END
+from datetime import datetime
 
 class PyExecutorAgent:
     def __init__(self, model, model_provider, output_formatting, try_tolerance=5):
         self.log = logging.getLogger("PyExecutorAgent")
-        self.py_executor = PyDockerExecutor()
+        self.storage_dir = f"storage/{datetime.now().strftime('%Y%m%d_%H%M%S')}/"
+        self.py_executor = PyDockerExecutor(self.storage_dir)
         self.output_formatting = output_formatting
         self.llm = init_chat_model(model, max_tokens=8192, temperature=0.6, model_provider=model_provider)
         self.try_tolerance = try_tolerance
+        self.review_count = 0
 
     def __del__(self):
         self.py_executor.stop_and_remove()
@@ -111,9 +114,13 @@ class PyExecutorAgent:
             self.py_executor.stop_and_remove()
             exit(1)
 
+        with open(f"{self.storage_dir}/review_{self.review_count}.txt", "w+") as review_f:
+            review_f.write(f'{result.code_review}\n\npassed: {result.passing_review}')
+            self.review_count += 1
+
         return {**state,
                 "messages": state["messages"][0:1],
-                "code_review": result.code_review}
+                "code_review": result}
 
     def fix_with_review(self, state: GraphState) -> GraphState:
         self.log.info("\n++++++++++++ executing fix_with_review")
@@ -142,14 +149,14 @@ class PyExecutorAgent:
         return {**state,
                 "messages": state["messages"][0:1],
                 "error": "",
-                "code_review": None,
+                # "code_review": None, # Might not need this anymore as there is now a pass/fail variable
                 "messages": state['messages'],
                 "generation": result}
 
     def handle_code_review(self, state: GraphState) -> str:
         self.log.info("\n+++++++++++++++ executing handle_code_review")
         self.log_state(state)
-        if state["code_review"]:
+        if not state["code_review"].passing_review:
             return "fail"
         return "pass"
 
@@ -184,7 +191,9 @@ class PyExecutorAgent:
         self.log.info("\n+++++++++++++ executing fail")
         self.log_state(state)
         self.py_executor.stop_and_remove()
-        return END
+        return {
+            **state
+        }
 
     def should_retry(self, state: GraphState) -> str:
         self.log.info("\n\n\n+++++++++++ executing should_retry")

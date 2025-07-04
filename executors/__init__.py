@@ -12,14 +12,14 @@ from datetime import datetime
 
 
 class PyDockerExecutor:
-    def __init__(self):
+    def __init__(self, storage_dir):
         self.log = logging.getLogger("PyDockerExecutor")
         self.container_name = "pyexecutor"
         self.docker_client = docker.client.from_env()
         self.container = None
         self.temp_dir = None
         self.iteration = 0
-        self.file_storage_dir = f"storage/{datetime.now().strftime('%Y%m%d_%H%M%S')}/"
+        self.file_storage_dir = storage_dir
         os.makedirs(self.file_storage_dir, exist_ok=True)
 
     def __del__(self):
