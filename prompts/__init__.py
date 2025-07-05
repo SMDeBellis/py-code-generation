@@ -7,80 +7,10 @@ def get_test_builder_system_prompt():
 
 def get_test_build_prompt(spec: str, language: str, output_formatting: str):
     return (
-        f"""# Comprehensive Code and Test Implementation from Specification
-
-You are tasked with creating a complete implementation that fully satisfies the following specification. Your implementation must be thorough, correct, and include comprehensive test coverage.
-
-## Specification to Implement:
-```
-{spec}
-```
-
-## Implementation Requirements:
-
-### Code Implementation:
-1. **Complete Functionality**: Implement ALL features, functions, classes, and methods described in the specification
-2. **Exact Behavior**: Ensure the code behaves exactly as specified for all described scenarios
-3. **Input/Output Compliance**: Handle all specified inputs and produce all specified outputs correctly
-4. **Edge Cases**: Implement proper handling for boundary conditions and edge cases mentioned in the spec
-5. **Error Handling**: Implement all specified error conditions, exceptions, and error messages
-6. **Performance Requirements**: Meet any performance criteria specified
-7. **Data Structures**: Use appropriate data structures that align with the specification requirements
-8. **API Compliance**: If the spec defines an API or interface, implement it exactly as specified
-
-### Test Implementation in {language}:
-1. **Complete Coverage**: Write tests for EVERY function, method, and feature described in the specification
-2. **Positive Test Cases**: Test all normal operation scenarios described in the spec
-3. **Negative Test Cases**: Test all error conditions and invalid inputs mentioned in the spec
-4. **Boundary Testing**: Test edge cases, limits, and boundary conditions
-5. **Integration Testing**: Test how different components work together as specified
-6. **Data Validation**: Test input validation and output verification
-7. **Performance Testing**: Include tests for any performance requirements
-8. **Regression Testing**: Ensure tests catch any deviation from the specified behavior
-
-### Quality Assurance:
-- **Specification Traceability**: Every requirement in the spec should be traceable to code implementation and test coverage
-- **Code Quality**: Follow {language} best practices and coding standards
-- **Test Quality**: Write clear, maintainable, and reliable tests
-- **Documentation**: Include clear comments explaining complex logic and specification compliance
-
-## Pre-Implementation Analysis:
-Before writing code, carefully analyze the specification to:
-1. Identify all functional requirements
-2. Identify all non-functional requirements (performance, security, etc.)
-3. Identify all input/output specifications
-4. Identify all error conditions and edge cases
-5. Determine the appropriate architecture and design patterns
-6. Plan the test strategy to ensure complete coverage
-
-## Deliverables:
-Provide two complete sections:
-
-### 1. Production Code
-- Complete, working implementation that fully satisfies the specification
-- Well-structured, maintainable code following {language} best practices
-- Comprehensive error handling and input validation
-- Clear documentation and comments
-
-### 2. Test Suite
-- Comprehensive unit tests covering all functionality
-- Tests for all positive and negative scenarios
-- Edge case and boundary condition testing
-- Clear test organization and naming
-- Assertions that verify specification compliance
-
-## Verification Criteria:
-Your implementation will be considered complete when:
-- [ ] Every requirement in the specification has been implemented
-- [ ] Every implemented feature has corresponding tests
-- [ ] All specified behaviors are correctly implemented
-- [ ] All specified error conditions are properly handled
-- [ ] Tests provide comprehensive coverage of the specification
-- [ ] Code and tests are production-ready quality
-
-**Critical**: Do not implement partial functionality. The code must fully satisfy the entire specification, and the tests must comprehensively verify all specified behavior.
-
-{output_formatting}"""
+        "Write a comprehensive set of unit tests and code based off of the spec: \n"
+        f"{spec}\n"
+        f"Write the tests in the {language} programming language."
+        f"{output_formatting}"
     )
 
 def get_fix_prompt(state: GraphState, output_formatting: str):
@@ -106,6 +36,11 @@ You are tasked with implementing ALL changes requested in the following code rev
 ## Code Review to Implement:
 ```
 {state['code_review']}
+```
+
+## Specification Document:
+```
+{state['spec']}
 ```
 
 ## Current Code to Modify:
