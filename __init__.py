@@ -6,13 +6,31 @@ from langchain.output_parsers import PydanticOutputParser
 from prompts import get_test_build_prompt, get_code_builder_prompt, get_test_builder_system_prompt
 from agents.agent import PyExecutorAgent, GraphState
 from models.codestate import CodeState
+from typing import Optional
 from dotenv import load_dotenv
 import sys
 import time
 from langgraph.graph import StateGraph, START, END
+from datetime import datetime
 
+os.makedirs('log', exist_ok=True)
+timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+log_filename = f'log/py-code-generator-{timestamp}.log'
 
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+logging.getLogger('httpcore.connection').setLevel(logging.WARNING)
+logging.getLogger('httpcore.http11').setLevel(logging.WARNING)
+logging.getLogger('urllib3.connectionpool').setLevel(logging.WARNING)
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_filename),
+        logging.StreamHandler()  # Optional: also log to console
+    ]
+)
+# logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 log = logging.getLogger("Service")
 load_dotenv()
 
@@ -29,17 +47,24 @@ def run_code_builder(spec_file: str, language: str):
 
         graph = StateGraph(GraphState)
         graph.add_node("generate", agent.generate)
-        graph.add_node("validate_genereration", agent.validate_generation)
         graph.add_node("code_check", agent.code_check)
         graph.add_node("fix_code", agent.fix_code)
+        graph.add_node("review_code", agent.review_code)
+        graph.add_node("fix_with_review", agent.fix_with_review)
         graph.add_node("fail", agent.fail)
         graph.add_edge(START, "generate")
+        graph.add_edge("fail", END)
+
         graph.add_conditional_edges("generate", agent.validate_generation,
                                     {"fail": "generate", "pass": "code_check"})
         graph.add_conditional_edges("code_check", agent.should_retry,
-                                    {"fix": "fix_code", "gtfo": "fail", "end": END})
+                                    {"fix": "fix_code", "gtfo": "fail", "end": "review_code"})
         graph.add_conditional_edges("fix_code", agent.validate_generation,
                                     {"fail": "fix_code", "pass": "code_check"})
+        graph.add_conditional_edges("review_code", agent.handle_code_review,
+                                    {"pass": END, "fail": "fix_with_review"})
+        graph.add_conditional_edges("fix_with_review", agent.validate_generation,
+                                    {"fail": "fix_with_review", "pass": "code_check"})
 
         app = graph.compile()
 
@@ -52,9 +77,12 @@ def run_code_builder(spec_file: str, language: str):
                     "iterations": 0,
                     "error": "",
                     "generation": None,
-                    "success": False})
+                    "success": False,
+                    "code_review": None,
+                    "spec": spec},
+                    config={"recursion_limit": 100})
         
-        # log.info(f"Code creation has completed. results: {results}")
+        log.info(f"Code creation has completed. results: {results}")
         if results and results['generation']:
             result = results['generation']
             output_dir_name = f"build/tests-{str(time.time())}/"

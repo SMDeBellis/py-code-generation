@@ -8,14 +8,19 @@ import tempfile
 import shutil
 from typing import Dict, Any
 from models.graphstate import GraphState
+from datetime import datetime
+
 
 class PyDockerExecutor:
-    def __init__(self):
+    def __init__(self, storage_dir):
         self.log = logging.getLogger("PyDockerExecutor")
         self.container_name = "pyexecutor"
         self.docker_client = docker.client.from_env()
         self.container = None
         self.temp_dir = None
+        self.iteration = 0
+        self.file_storage_dir = storage_dir
+        os.makedirs(self.file_storage_dir, exist_ok=True)
 
     def __del__(self):
         """Clean up resources when the object is destroyed."""
@@ -101,15 +106,22 @@ class PyDockerExecutor:
         if self.temp_dir:
             generation = state['generation']
             
-            tests_dest = os.path.join(self.temp_dir, "test_" + generation.code_under_test_name + ".py")
+            tests_dest = os.path.join(self.temp_dir, "test_" + generation.code_under_test_name.replace(' ', '') + ".py")
             with open(tests_dest, 'w+') as test_f:
                 test_f.write(generation.test_suite)
             self.log.info(f"Wrote to file: {tests_dest}, tests: {generation.test_suite}")
+
+            with open(f"{self.file_storage_dir}/tests_{self.iteration}.py", 'w+') as store_f:
+                store_f.write(generation.test_suite)
 
             code_dest = os.path.join(self.temp_dir, generation.code_module_name + ".py")
             with open(code_dest, 'w+') as code_f:
                 code_f.write(generation.code_under_test)
             self.log.info(f"Wrote to file: {code_dest}, code: {generation.code_under_test}")
+
+            with open(f"{self.file_storage_dir}/code_{self.iteration}.py", 'w+') as store_f:
+                store_f.write(generation.code_under_test)
+            self.iteration += 1
         else:
             self.log.warning("Temp dir does not exist. Cannot write files.")
  
