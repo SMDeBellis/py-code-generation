@@ -47,7 +47,6 @@ def run_code_builder(spec_file: str, language: str):
 
         graph = StateGraph(GraphState)
         graph.add_node("generate", agent.generate)
-        graph.add_node("validate_genereration", agent.validate_generation)
         graph.add_node("code_check", agent.code_check)
         graph.add_node("fix_code", agent.fix_code)
         graph.add_node("review_code", agent.review_code)
@@ -61,7 +60,7 @@ def run_code_builder(spec_file: str, language: str):
         graph.add_conditional_edges("code_check", agent.should_retry,
                                     {"fix": "fix_code", "gtfo": "fail", "end": "review_code"})
         graph.add_conditional_edges("fix_code", agent.validate_generation,
-                                    {"fail": "fix_code", "pass": "review_code"})
+                                    {"fail": "fix_code", "pass": "code_check"})
         graph.add_conditional_edges("review_code", agent.handle_code_review,
                                     {"pass": END, "fail": "fix_with_review"})
         graph.add_conditional_edges("fix_with_review", agent.validate_generation,
